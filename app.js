@@ -53,6 +53,6 @@ var dictCloudType = {'CB': 'Cumulonimbus',
                     'CI': 'Cirrus',
                     'CC': 'Cirrocumulus'
 };
-var x = new Date()+4;
+var x = new Date();
 
 console.log(x)

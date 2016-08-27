@@ -75,11 +75,12 @@ def getCountry():
 #Organizes the METAR and translates it to plain english
 def translateMetar(METAR):
     METAR = str(METAR.strip())
+    print(METAR)
     rmkTemp = METAR.split('RMK')
     metRMK = rmkTemp[1]
     metMETAR = rmkTemp[0]
     metInfo = {}
-    print(metMETAR)
+
     #Station
     metInfo['Station'] = metMETAR[:4]
     metStation = metInfo['Station']
@@ -216,7 +217,7 @@ def translateMetar(METAR):
                 metClouds = metClouds
             else:
                 metClouds = metClouds + ' at ' + metCloudHeight + 'ft'
-            metMETAR = metMETAR.strip()
+    metMETAR = metMETAR.strip()
 
     #Temperature
     metTemperature = metMETAR[:2]
