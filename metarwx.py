@@ -323,7 +323,7 @@ print(returnMETAR)
 
 while 1 == 1:
     print(time.strftime("%M"))
-    if (time.strftime("%M")) == '00':
+    if (time.strftime("%M")) == '10':
         userCity = getLoc()
         userCountry = getCountry()
         userApCode = getICAO(userCity, userCountry)
