@@ -1,0 +1,29 @@
+{
+  "description": "A list of global airports featuring unique IATA/ICAO identifiers and latitude/longitude references. \r\n\r\nSourced from openflights.org. \r\n\r\nEach airport is represented by the following fields:\r\n\r\n* airport_id - Unique OpenFlights identifier for this airport.\r\n* name - Name of airport. May or may not contain the city name.\r\n* city - Main city served by airport. May be spelled differently from name.\r\n* country - Country or territory where airport is located.\r\n* iata_faa - 3-letter FAA code, for airports located in country \"United States of America\". 3-letter IATA code, for all other airports. Blank if not assigned.\r\n* icao - 4-letter ICAO code. Blank if not assigned.\r\n* latitude - Decimal degrees, usually to six significant digits. Negative is South, positive is North.\r\n* longitude - Decimal degrees, usually to six significant digits. Negative is West, positive is East.\r\n* Altitude - In feet.\r\n* zone - Hours offset from UTC. Fractional hours are expressed as decimals, eg. India is 5.5.\r\n* dst - Daylight savings time. One of E (Europe), A (US/Canada), S (South America), O (Australia), Z (New Zealand), N (None) or U (Unknown).", 
+  "license": {
+    "url": "http://www.opendefinition.org/licenses/gfdl", 
+    "type": "gfdl", 
+    "title": "GNU Free Documentation License"
+  }, 
+  "title": "Global airports", 
+  "keywords": [
+    "air-transport", 
+    "airports", 
+    "aviation", 
+    "iata", 
+    "icao", 
+    "transport", 
+    "travel"
+  ], 
+  "resources": [
+    {
+      "hash": "86bf15fc9ffe430df07c4ebc690306c1e17d8797", 
+      "description": "List of global airports and associated data sourced from http://openflights.svn.sourceforge.net/viewvc/openflights/openflights/data/airports.dat", 
+      "title": "2012-07-09T214020/global_airports.csv", 
+      "url": "https://commondatastorage.googleapis.com/ckannet-storage/2012-07-09T214020/global_airports.csv", 
+      "format": "CSV", 
+      "name": "2012-07-09t214020-global-airports-csv"
+    }
+  ], 
+  "name": "global-airports"
+}

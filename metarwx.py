@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import urllib.request
 import urllib.parse
 import time
-
+import csv
 dictDescriptors = {'-': 'Light',
                     '+': 'Heavy',
                     'MI': 'Shallow',
@@ -42,7 +42,7 @@ dictClouds = {'CLR': 'Sky Clear',
                 'SCT': 'Scattered Clouds',
                 'BKN': 'Broken Clouds',
                 'OVC': 'Overcast Clouds'}
-'''
+
 dictCloudType = {'CB': 'Cumulonimbus',
                     'TCU': 'Towering Cumulus',
                     'CU': 'Cumulus',
@@ -56,7 +56,7 @@ dictCloudType = {'CB': 'Cumulonimbus',
                     'ACC': 'Altocumulus Castellanus',
                     'CI': 'Cirrus',
                     'CC': 'Cirrocumulus'}
-'''
+
 #Uses the user ip to get the city and time zone
 def getLoc():
     url = 'http://freegeoip.net/json/'
@@ -64,6 +64,12 @@ def getLoc():
     js = r.json()
     city = js['city']
     return(city)
+def getCountry():
+    url = 'http://freegeoip.net/json/'
+    r = requests.get(url)
+    js = r.json()
+    country = js['country_name']
+    return(country)
 
 
 #Organizes the METAR and translates it to plain english
@@ -73,12 +79,12 @@ def translateMetar(METAR):
     metRMK = rmkTemp[1]
     metMETAR = rmkTemp[0]
     metInfo = {}
-
+    print(metMETAR)
     #Station
     metInfo['Station'] = metMETAR[:4]
     metStation = metInfo['Station']
     metMETAR = metMETAR[4:]
-    metMETAR = metMETAR.strip()
+    metMETAR = str(metMETAR.strip())
 
     #Time
     metInfo['Time'] = metMETAR[:7]
@@ -97,35 +103,36 @@ def translateMetar(METAR):
     #Winds
     metInfo['Winds'] = metMETAR.split()[0]
     metMETAR = metMETAR.replace(metInfo['Winds'], "")
-    metWinds = ['0', '0', '0']
     if metInfo['Winds'] == '00000KT':
         metWinds = ['Calm']
         metWinds = 'Calm'
     elif 'VRB' in metInfo['Winds']:
-        metWinds[0] = 'Variable'
-        metWinds[1] = metInfo['Winds'][3:5]
-        metWinds = '%s @ %s KT' % (metWinds[0], metWinds[1])
+        metWindsDir = 'Variable'
+        metWindsVel = metInfo['Winds'][3:5]
+        metWinds = '%s @ %s KT' % (metWindsDir, metWindsVel)
     else:
-        metWinds[0] = metInfo['Winds'][:3]
-        metWinds[1] = metInfo['Winds'][3:5]
-        metWinds = '%s @ %s KT' % (metWinds[0], metWinds[1])
-    if 'G' in metInfo['Winds']:
-        metWinds[0] = metInfo['Winds'][:3]
-        metWinds[1] = metInfo['Winds'][3:5]
-        metWinds[2] = metInfo['Winds'][6:8]
-        metWinds = '%s @ %s KT, Gusting to %s' % (metWinds[0], metWinds[1], metWinds[2])
+        metWindsDir = metInfo['Winds'][:3]
+        metWindsVel = metInfo['Winds'][3:5]
+        if 'G' in metInfo['Winds']:
+            metWindsGust = metInfo['Winds'][6:8]
+            metWinds = '%s @ %s KT, Gusting to %s' % (metWindsDir, metWindsVel, metWindsGust)
+        else:
+            metWinds = '%s @ %s KT' % (metWindsDir, metWindsVel)
     if len(metMETAR.split()[0]) == 7:
         metInfo['VarWinds'] = metMETAR.split()[0]
         metMETAR = metMETAR.replace(metInfo['VarWinds'], "")
-        metWinds[0] = metInfo['VarWinds']
-        metWinds = '%s @ %s KT, Gusting to %s' % (metWinds[0], metWinds[1], metWinds[2])
+        metWindsVar = metInfo['VarWinds']
+        if 'G' in metInfo['Winds']:
+            metWindsGust = metInfo['Winds'][6:8]
+            metWinds = '%s, Variable between %s and %s @ %s KT, Gusting to %s' % (metWindsDir, metWindsVar[:3], metWindsVar[4:], metWindsVel, metWindsGust)
+        else:
+            metWinds = '%s, Variable between %s and %s @ %s KT' % (metWindsDir, metWindsVar[:3], metWindsVar[4:], metWindsVel)
     metMETAR = metMETAR.strip()
 
     #Visibility
-    metInfo['Visibility'] = metMETAR.split('SM')[0]
-    metMETAR = metMETAR.replace(metInfo['Visibility'], "")
-    metVisibility = metInfo['Visibility']
-    metMETAR = metMETAR[3:]
+    metVisibility = metMETAR.split()[0]
+    metMETAR = metMETAR.replace(metVisibility, "")
+    metVisibility = metVisibility[:2]
     metMETAR = metMETAR.strip()
 
     metRVR = 'None'
@@ -186,6 +193,7 @@ def translateMetar(METAR):
         metMETAR = metMETAR.strip()
 
     #Cloud coverage and altitude
+    metClouds = 'None'
     if metMETAR.split()[0][:3] in dictClouds:
         metClouds = ''
         metInfo['Clouds'] = metMETAR.split()[0]
@@ -211,19 +219,16 @@ def translateMetar(METAR):
             metMETAR = metMETAR.strip()
 
     #Temperature
-    metInfo['Temperature'] = metMETAR.split('/')[0]
-    metMETAR = metMETAR.replace(metInfo['Temperature'], "")
-    metTemperature = metInfo['Temperature']
+    metTemperature = metMETAR[:2]
+    metDewpoint = metMETAR[3:5]
+    metMETAR = metMETAR[5:]
     if metTemperature[:1] == 'M':
         metTemperature = '-' + metTemperature[1:] + 'C'
     else:
         metTemperature = metTemperature + 'C'
     metMETAR = metMETAR[1:]
-
     #Dewpoint
-    metInfo['Dewpoint'] = metMETAR.split()[0]
-    metMETAR = metMETAR.replace(metInfo['Dewpoint'], "")
-    metDewpoint = metInfo['Dewpoint']
+    metMETAR = metMETAR.replace(metDewpoint, "")
     if metDewpoint[:1] == 'M':
         metDewpoint = '-' + metDewpoint[1:] + 'C'
     else:
@@ -231,12 +236,14 @@ def translateMetar(METAR):
     metMETAR = metMETAR.strip()
 
     #Altimeter Setting
-    metInfo['Altimeter'] = metMETAR.split()[0]
-    metMETAR = metMETAR.replace(metInfo['Altimeter'], "")
-    metAltimeter = metInfo['Altimeter']
-    metAltimeter = '%s.%s"Hg' % (metAltimeter[1:3], metAltimeter[3:])
+    if len(metMETAR) == 5:
+        metAltimeter = metMETAR
+        metAltimeter = '%s.%s"Hg' % (metAltimeter[1:3], metAltimeter[3:])
+    else:
+        metAltimeter = metMETAR.split()[0]
+        metMETAR = metMETAR.replace(metAltimeter, "")
+        metAltimeter = '%s.%s"Hg' % (metAltimeter[1:3], metAltimeter[3:])
     metMETAR = metMETAR.strip()
-
     #Recent Wx
     metRecent = 'None'
     if 'RE' in metMETAR.split():
@@ -283,17 +290,23 @@ def getMetar(ICAO):
         METAR = METAR.strip()
     return(METAR)
 
-def getICAO(city):
-    url = 'https://en.wikipedia.org/wiki/' + city + ' airport' #encodes the URL with the ICAO code
-    #data = data.encode('utf-8')
-    #headers = {}
-    #headers['User-Agent'] = "Mozilla/5.0" #Makes script look human
-    req = urllib.request.Request(url)
-    r = urllib.request.urlopen(req).read() #Gets the website data
-    soup = BeautifulSoup(r, "lxml")
-    letters = soup.find_all("b")
-    ICAO = str(letters[2])
-    ICAO = ICAO[3:7]
+def getICAO(userCity, userCountry, delimiter=None):
+    import csv
+    if not delimiter:
+        delimiter = ','
+    if userCountry == "Canada":
+        reader = csv.reader(open('canairports.csv'), delimiter=delimiter)
+        result = {}
+        for row in reader:
+            result[row[0]] = row[1]
+        ICAO = result.get(userCity, 'CYOW')
+    else:
+        reader = csv.reader(open('airports.csv'), delimiter=delimiter)
+        result = {}
+        for row in reader:
+            result[row[0]] = row[1]
+        print(result)
+        ICAO = result.get(userCity, 'CYOW')
     return(ICAO)
 
 #Gets new METAR every hour
@@ -301,12 +314,20 @@ def getICAO(city):
 
 
 userCity = getLoc()
-userApCode = getICAO(userCity)
+userCountry = getCountry()
+userApCode = getICAO(userCity, userCountry)
 updatedMETAR = getMetar(userApCode)
 returnMETAR = translateMetar(updatedMETAR)
 print(returnMETAR)
 
 
-while True:
-    if (time.strftime("%M", time.gmtime()))== '10':
-        getMetar(userApCode)
+while 1 == 1:
+    print(time.strftime("%M"))
+    if (time.strftime("%M")) == '00':
+        userCity = getLoc()
+        userCountry = getCountry()
+        userApCode = getICAO(userCity, userCountry)
+        updatedMETAR = getMetar(userApCode)
+        returnMETAR = translateMetar(updatedMETAR)
+        print(returnMETAR)
+    time.sleep(60)
