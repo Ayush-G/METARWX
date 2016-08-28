@@ -155,7 +155,7 @@ def translateMetar(METAR):
 
     #Vicinity wx
     metVicinity = 'None'
-    if 'VC' in metMETAR.split()[0]:
+    if 'VC' in metMETAR.split()[0] and not 'OVC' in metMETAR.split()[0]:
         metInfo['Vicinity'] = metMETAR.split()[0]
         metMETAR = metMETAR.replace(metInfo['Vicinity'], "")
         metVicinity = metInfo['Vicinity'][2:]
