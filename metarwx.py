@@ -4,6 +4,7 @@ import urllib.request
 import urllib.parse
 import time
 import csv
+import re
 dictDescriptors = {'-': 'Light',
                     '+': 'Heavy',
                     'MI': 'Shallow',
@@ -201,7 +202,7 @@ def translateMetar(METAR):
         metMETAR = metMETAR.replace(metInfo['Clouds'], "")
         metSkyCondition = metInfo['Clouds']
         metClouds = (dictClouds.get(metSkyCondition[:3], 'Unknown'))
-        metCloudHeight = metSkyCondition[-3:].lstrip('0') + '00'
+        metCloudHeight = metSkyCondition[3:6].lstrip('0') + '00'
         if metClouds == "Sky Clear":
             metClouds = metClouds
         else:
@@ -267,7 +268,39 @@ def translateMetar(METAR):
             metWindShear = 'Wind Shear: Runway ' + metWindShear[6:]
     else: metWindShear = 'None'
 
-    msgMETAR = 'Station: %s | Time of Observation: %s GMT | Winds: %s | Visibility: %s SM | Runway Visual Range: %s| Vicinity: %s| Present Weather Condition: %s | Cloud Heights: %s | Temperature: %s | Dewpoint: %s | Altimeter Setting: %s | Recent Weather: %s | Wind Shear: %s | Remarks: %s' % (metStation, metTime, metWinds, metVisibility, metRVR, metVicinity, metCondition, metClouds, metTemperature, metDewpoint, metAltimeter, metRecent, metWindShear, metRMK)
+    #RMK
+    #CloudDetails
+    metCloudType = metRMK.split()[0]
+    metRMK = metRMK.strip()
+    metCTOctas = (re.findall(r'\d+', metCloudType))
+    metCTCover = (re.findall(r'\D+', metCloudType))
+    cloudTypesNum = len(metCTCover)
+    iternum = 0
+    metCloudDetails = ""
+    for clouds in metCTCover:
+        metCloudDetails = metCloudDetails + dictCloudType.get(clouds) + ' ' + metCTOctas[iternum] + '/8 coverage; '
+        iternum += 1
+    metCloudDetails = metCloudDetails[:-2]
+    metRMK = metRMK.replace(metCloudType, "")
+    metRMK = metRMK.strip()
+
+    #Density altitude
+    metDensityAlt = metRMK.split()[-1]
+    metRMK = metRMK.replace('DENSITY ALT', "")
+    metRMK = metRMK.replace(metDensityAlt, "")
+    metRMK = metRMK.strip()
+
+    #Sea Level Pressure
+    metSLP = metRMK.split()[-1]
+    metRMK = metRMK.replace(metSLP, '')
+    metSLP = metSLP[3:]
+    metRMK = metRMK.strip()
+    if metSLP[0] == '5' or metSLP[0] == '4' or metSLP[0] == '3' or metSLP[0] == '2' or metSLP[0] == '1' or metSLP[0] == '0':
+        metSLP = "10" + metSLP[:-1] + "." + metSLP[-1] + ' hPa'
+    else:
+        metSLP = "9" + metSLP[:-1] + "." + metSLP[-1] + ' hPa'
+
+    msgMETAR = 'Station: %s | Time of Observation: %s GMT | Winds: %s | Visibility: %s SM | Runway Visual Range: %s| Vicinity: %s| Present Weather Condition: %s | Cloud Heights: %s | Temperature: %s | Dewpoint: %s | Pressure: %s / %s | Recent Weather: %s | Wind Shear: %s | Cloud Details: %s | Density Altitude: %s | Remarks: %s' % (metStation, metTime, metWinds, metVisibility, metRVR, metVicinity, metCondition, metClouds, metTemperature, metDewpoint, metAltimeter, metSLP, metRecent, metWindShear, metCloudDetails, metDensityAlt, metRMK)
     return(msgMETAR)
 #Submits ICAO code to get METAR
 def getMetar(ICAO):
