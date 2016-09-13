@@ -271,7 +271,7 @@ def translateMetar(METAR):
     #RMK
     #CloudDetails
     metCloudDetails = "None"
-    if metRMK.split()[0] in dictCloudType:
+    if (re.findall(r'\D+', metRMK.split()[0])[0]) in dictCloudType:
         metCloudType = metRMK.split()[0]
         metRMK = metRMK.strip()
         metCTOctas = (re.findall(r'\d+', metCloudType))
@@ -285,6 +285,19 @@ def translateMetar(METAR):
         metCloudDetails = metCloudDetails[:-2]
         metRMK = metRMK.replace(metCloudType, "")
         metRMK = metRMK.strip()
+
+    while metRMK.split()[0] in dictCloudType:
+        if metRMK.split()[1] == "TR":
+            metCloudDetails = metCloudDetails + "; "
+            metCloudType = metRMK.split()[0]
+            metRMK = metRMK.strip()
+            metCloudDetails = metCloudDetails + dictCloudType.get(metCloudType) + " Trace; "
+            metRMK = metRMK.replace(metCloudType, "")
+            metRMK = metRMK.strip()
+            metRMK = metRMK[3:]
+            metCloudDetails = metCloudDetails[:-2]
+        else:
+            break
 
     #Density altitude
     metDensityAlt = "None"
