@@ -270,25 +270,29 @@ def translateMetar(METAR):
 
     #RMK
     #CloudDetails
-    metCloudType = metRMK.split()[0]
-    metRMK = metRMK.strip()
-    metCTOctas = (re.findall(r'\d+', metCloudType))
-    metCTCover = (re.findall(r'\D+', metCloudType))
-    cloudTypesNum = len(metCTCover)
-    iternum = 0
-    metCloudDetails = ""
-    for clouds in metCTCover:
-        metCloudDetails = metCloudDetails + dictCloudType.get(clouds) + ' ' + metCTOctas[iternum] + '/8 coverage; '
-        iternum += 1
-    metCloudDetails = metCloudDetails[:-2]
-    metRMK = metRMK.replace(metCloudType, "")
-    metRMK = metRMK.strip()
+    metCloudDetails = "None"
+    if metRMK.split()[0] in dictCloudType:
+        metCloudType = metRMK.split()[0]
+        metRMK = metRMK.strip()
+        metCTOctas = (re.findall(r'\d+', metCloudType))
+        metCTCover = (re.findall(r'\D+', metCloudType))
+        cloudTypesNum = len(metCTCover)
+        iternum = 0
+        metCloudDetails = ""
+        for clouds in metCTCover:
+            metCloudDetails = metCloudDetails + dictCloudType.get(clouds) + ' ' + metCTOctas[iternum] + '/8 coverage; '
+            iternum += 1
+        metCloudDetails = metCloudDetails[:-2]
+        metRMK = metRMK.replace(metCloudType, "")
+        metRMK = metRMK.strip()
 
     #Density altitude
-    metDensityAlt = metRMK.split()[-1]
-    metRMK = metRMK.replace('DENSITY ALT', "")
-    metRMK = metRMK.replace(metDensityAlt, "")
-    metRMK = metRMK.strip()
+    metDensityAlt = "None"
+    if 'FT' in metRMK.split()[-1]:
+        metDensityAlt = metRMK.split()[-1]
+        metRMK = metRMK.replace('DENSITY ALT', "")
+        metRMK = metRMK.replace(metDensityAlt, "")
+        metRMK = metRMK.strip()
 
     #Sea Level Pressure
     metSLP = metRMK.split()[-1]
