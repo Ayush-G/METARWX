@@ -385,9 +385,9 @@ while 1 == 1:
     if (time.strftime("%M")) == '10':
         userCity = getLoc()
         userCountry = getCountry()
-        userTimeZone = getTimeZone()
         userApCode = getICAO(userCity, userCountry)
+        userStnName = getStnName(userApCode)
         updatedMETAR = getMetar(userApCode)
-        returnMETAR = translateMetar(updatedMETAR)
+        returnMETAR = translateMetar(updatedMETAR, userStnName)
         print(returnMETAR)
     time.sleep(60)
