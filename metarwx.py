@@ -5,6 +5,7 @@ import urllib.parse
 import time
 import csv
 import re
+
 dictDescriptors = {'-': 'Light',
                     '+': 'Heavy',
                     'MI': 'Shallow',
@@ -42,7 +43,8 @@ dictClouds = {'CLR': 'Sky Clear',
                 'FEW': 'Few Clouds',
                 'SCT': 'Scattered Clouds',
                 'BKN': 'Broken Clouds',
-                'OVC': 'Overcast Clouds'}
+                'OVC': 'Overcast Clouds',
+                'CAVOK': 'Ceiling and Visibility OK'}
 
 dictCloudType = {'CB': 'Cumulonimbus',
                     'TCU': 'Towering Cumulus',
@@ -72,9 +74,14 @@ def getCountry():
     country = js['country_name']
     return(country)
 
-
+def getStnName(ICAO):
+    url = 'http://api.geonames.org/weatherIcaoJSON?ICAO=' + ICAO + '&username=guppy'
+    r = requests.get(url)
+    js = r.json()
+    stnName = js['weatherObservation']['stationName']
+    return(stnName)
 #Organizes the METAR and translates it to plain english
-def translateMetar(METAR):
+def translateMetar(METAR, metStnName):
     METAR = str(METAR.strip())
     print(METAR)
     rmkTemp = METAR.split('RMK')
@@ -294,7 +301,7 @@ def translateMetar(METAR):
             metCloudDetails = metCloudDetails + dictCloudType.get(metCloudType) + " Trace; "
             metRMK = metRMK.replace(metCloudType, "")
             metRMK = metRMK.strip()
-            metRMK = metRMK[3:]
+            metRMK = metRMK.replace("TR", "", 1)
             metCloudDetails = metCloudDetails[:-2]
         else:
             break
@@ -303,9 +310,11 @@ def translateMetar(METAR):
     metDensityAlt = "None"
     if 'FT' in metRMK.split()[-1]:
         metDensityAlt = metRMK.split()[-1]
-        metRMK = metRMK.replace('DENSITY ALT', "")
-        metRMK = metRMK.replace(metDensityAlt, "")
         metRMK = metRMK.strip()
+        metRMK = metRMK.replace('DENSITY', "")
+        metRMK = metRMK.replace('ALT', "")
+        metRMK = metRMK.replace(metDensityAlt, "")
+    metRMK = metRMK.strip()
 
     #Sea Level Pressure
     metSLP = metRMK.split()[-1]
@@ -317,7 +326,7 @@ def translateMetar(METAR):
     else:
         metSLP = "9" + metSLP[:-1] + "." + metSLP[-1] + ' hPa'
 
-    msgMETAR = 'Station: %s | Time of Observation: %s GMT | Winds: %s | Visibility: %s SM | Runway Visual Range: %s| Vicinity: %s| Present Weather Condition: %s | Cloud Heights: %s | Temperature: %s | Dewpoint: %s | Pressure: %s / %s | Recent Weather: %s | Wind Shear: %s | Cloud Details: %s | Density Altitude: %s | Remarks: %s' % (metStation, metTime, metWinds, metVisibility, metRVR, metVicinity, metCondition, metClouds, metTemperature, metDewpoint, metAltimeter, metSLP, metRecent, metWindShear, metCloudDetails, metDensityAlt, metRMK)
+    msgMETAR = 'Station: %s / %s | Time of Observation: %s GMT | Winds: %s | Visibility: %s SM | Runway Visual Range: %s| Vicinity: %s| Present Weather Condition: %s | Cloud Heights: %s | Temperature: %s | Dewpoint: %s | Pressure: %s / %s | Recent Weather: %s | Wind Shear: %s | Cloud Details: %s | Density Altitude: %s | Remarks: %s' % (metStation, metStnName, metTime, metWinds, metVisibility, metRVR, metVicinity, metCondition, metClouds, metTemperature, metDewpoint, metAltimeter, metSLP, metRecent, metWindShear, metCloudDetails, metDensityAlt, metRMK)
     return(msgMETAR)
 #Submits ICAO code to get METAR
 def getMetar(ICAO):
@@ -332,7 +341,6 @@ def getMetar(ICAO):
     headers = {}
     headers['User-Agent'] = "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.27 Safari/537.17" #Makes script look human
     req = urllib.request.Request(url, data, headers = headers)
-
     r = urllib.request.urlopen(req).read() #Gets the website data
     soup = BeautifulSoup(r, "lxml")
     letters = soup.find_all("div", {"id": "awc_main_content"})
@@ -367,8 +375,9 @@ def getICAO(userCity, userCountry, delimiter=None):
 userCity = getLoc()
 userCountry = getCountry()
 userApCode = getICAO(userCity, userCountry)
+userStnName = getStnName(userApCode)
 updatedMETAR = getMetar(userApCode)
-returnMETAR = translateMetar(updatedMETAR)
+returnMETAR = translateMetar(updatedMETAR, userStnName)
 print(returnMETAR)
 
 
@@ -376,6 +385,7 @@ while 1 == 1:
     if (time.strftime("%M")) == '10':
         userCity = getLoc()
         userCountry = getCountry()
+        userTimeZone = getTimeZone()
         userApCode = getICAO(userCity, userCountry)
         updatedMETAR = getMetar(userApCode)
         returnMETAR = translateMetar(updatedMETAR)
